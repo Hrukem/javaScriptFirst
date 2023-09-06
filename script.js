@@ -78,8 +78,10 @@ class App {
 
   constructor() {
     this._getPosition();
+    this._getLocalStorage();
     form.addEventListener(`submit`, this._newWorkout.bind(this));
     inputType.addEventListener(`change`, this._toogleFeield.bind(this));
+    containerWorkouts.addEventListener(`click`, this._moveToPopup.bind(this));
   }
   _getPosition() {
     if (navigator.geolocation) {
@@ -108,8 +110,13 @@ class App {
 
     // обработчик события клика по карте
     this.#map.on("click", this._showForm.bind(this));
+
+    this._workouts.forEach((work) => {
+      this._renderWorkMarke(work);
+    });
   }
 
+  // метод отображающий форму при клике по карте
   _showForm(mapE) {
     this.#mapEvent = mapE;
     form.classList.remove(`hidden`);
@@ -180,6 +187,9 @@ class App {
 
     // очистить поля ввода и спрятать форму
     this._hideForm();
+
+    // local Storage
+    this._setLocalStorage();
   }
 
   _renderWorkMarke(workout) {
@@ -194,7 +204,9 @@ class App {
           className: "mark-popup",
         })
       )
-      .setPopupContent(`${workout.type === "running" ? "🏃‍♂" : "🚴"} ${workout.description}`)
+      .setPopupContent(
+        `${workout.type === "running" ? "🏃‍♂" : "🚴"} ${workout.description}`
+      )
       .openPopup();
   }
 
@@ -261,6 +273,43 @@ class App {
     }
 
     form.insertAdjacentHTML(`afterend`, html);
+  }
+
+  _moveToPopup(e) {
+    const workoutEL = e.target.closest(`.workout`);
+    //console.log(workoutEL);
+    if (!workoutEL) return;
+
+    const workout = this._workouts.find(
+      (work) => work.id === workoutEL.dataset.id
+    );
+    // console.log(workout)
+
+    this.#map.setView(workout.coords, 15, {
+      animate: true,
+      pan: { duration: 1 },
+    });
+  }
+
+  _setLocalStorage() {
+    localStorage.setItem(`workouts`, JSON.stringify(this._workouts));
+  }
+
+  _getLocalStorage() {
+    const data = JSON.parse(localStorage.getItem(`workouts`));
+    if (!data) return;
+
+    this._workouts = data;
+    this._workouts.forEach((work) => {
+      this._renderWorout(work);
+      //console.log(work);
+      //this._renderWorkMarke(work);
+    });
+  }
+
+  reset() {
+    localStorage.removeItem(`workouts`);
+    location.reload();
   }
 }
 
